@@ -1,62 +1,157 @@
-<!--
-Sync Impact Report
-- Version change: none → 1.0.0
-- Modified principles:
-  - I. Library-First
-  - II. CLI & Automated Workflows
-  - III. Test-First (NON-NEGOTIABLE)
-  - IV. Integration & Contract Testing
-  - V. Observability, Versioning & Simplicity
-- Added sections: Constraints & Security; Development Workflow
-- Removed sections: none
-- Templates requiring updates:
-  - .specify/templates/constitution-template.md ✅ updated (source template kept for reference)
-  - .specify/templates/plan-template.md ⚠ pending — requires constitution-driven "Constitution Check" gate mapping
-  - .specify/templates/spec-template.md ⚠ pending — ensure mandatory User Scenarios & Testing align with Test-First principle
-  - .specify/templates/tasks-template.md ⚠ pending — ensure task organization enforces test-first and foundational gate
-  - .specify/templates/checklist-template.md ⚠ pending — recommend checklist items reflect new governance rules
-- Follow-up TODOs:
-  - Ensure CI checks include a "Constitution Check" step that validates PRs against governance rules (pending CI update)
--->
 
+Constitution · MD
 # Spec Kit Superpower Spring Boot Example Constitution
-
-## Core Principles
-
-### I. Library-First
-Every feature must begin as a self-contained module or Spring Boot component. Modules MUST be independently testable, documented, and have a single, well-defined purpose. Organizational or cross-cutting utilities without a clear consumer are forbidden unless justified in the plan and approved in the PR.
-
-### II. CLI & Automated Workflows
-Tooling and developer workflows MUST be exposed via CLI commands and automated pipelines following the specify → plan → tasks → implement model. Tool outputs intended for automation MUST support a machine-readable format (JSON) and a human-readable format for developer consumption.
-
-### III. Test-First (NON-NEGOTIABLE)
-TDD is required. Every change MUST include failing tests (unit, integration, or contract as appropriate) before implementation. Tests MUST be added to the PR, run in CI, and pass before merge. Tests are the authoritative specification for behavior.
-
-### IV. Integration & Contract Testing
-Changes that affect inter-service interactions, public contracts, or shared schemas MUST include contract and integration tests. Contract tests belong under tests/contract and integration tests under tests/integration. These tests are required for any change that alters surface APIs or shared data models.
-
-### V. Observability, Versioning & Simplicity
-All services and modules MUST emit structured logs and expose metrics appropriate for the runtime environment. Versioning MUST follow MAJOR.MINOR.PATCH semantics; breaking changes require a MAJOR bump and migration notes. Favor simple designs; any added complexity MUST be justified in the plan and documented.
-
-## Constraints & Security
-- Technology stack: Spring Boot (primary framework), Spec Kit 0.10.2, GitHub Copilot integrations, Superpowers extensions.
-- Secrets and credentials MUST NOT be committed to repository files. Use environment configuration or secret managers endorsed by the organization.
-- Performance and resource constraints MUST be captured in plan.md when relevant (p95 targets, memory limits, etc.).
-- Compliance-sensitive features MUST list regulatory constraints (e.g., GDPR) in the plan and spec.
-
-## Development Workflow
-- Follow the workflow: specify → plan → tasks → implement. Use branch names like feature/short-description and include a link to the spec in the PR description.
-- Code review: PRs MUST include tests, a plan reference, and a short migration/rollback note when applicable. At least one maintainer review is required for non-trivial changes.
-- CI gates: Unit tests, linters, and the Constitution Check (validating governance compliance) MUST pass before merge. Integration and contract tests MUST run in CI for relevant changes.
-- Release process: Tag releases with semantic versions and include change notes that reference any constitution-driven migration guidance.
-
-## Governance
-- The constitution supersedes informal practices. Amendments to the constitution require a documented proposal (PR) and approval from repository maintainers.
-- Versioning policy:
-  - MAJOR: Backward-incompatible governance or principle removals/renames.
-  - MINOR: Addition of new principle or material expansions to guidance.
-  - PATCH: Clarifications, wording fixes, and non-semantic refinements.
-- Amendment procedure: Propose changes via PR against .specify/memory/constitution.md. Include rationale, migration plan (if applicable), and tests or checks that will enforce the change. Maintainters must approve and merge; the constitution's Last Amended date updates to the merge date.
-- Compliance: PRs that touch policy-sensitive areas MUST include a short "Constitution Compliance" section in the PR body describing how the change aligns or why a deviation is necessary.
-
-**Version**: 1.0.0 | **Ratified**: 2026-06-14 | **Last Amended**: 2026-06-14
+ 
+## Project Identity
+ 
+**Name:** Spec Kit Superpower Spring Boot Example  
+**Type:** REST API   
+**Language & Runtime:** Java 21 (LTS), Spring Boot 3.x  
+**Build Tool:** Maven (pom.xml is the single source of truth for dependencies)
+ 
+---
+ 
+## Article I — Technology Stack
+ 
+### Allowed
+ 
+| Layer | Technology |
+|---|---|
+| Framework | Spring Boot 3.x |
+| Language | Java 21 |
+| Persistence | Spring Data JPA + Hibernate |
+| Database (prod) | PostgreSQL 16 |
+| Database (test) | Testcontainers (PostgreSQL 16) — same engine as production |
+| Migrations | Flyway |
+| Security | Spring Security 6 + HTTP Session (server-side sessions) |
+| Validation | Jakarta Bean Validation (`@Valid`, `@NotNull`, etc.) |
+| Testing | JUnit 5, Mockito, Spring Boot Test, Testcontainers |
+| API Docs | SpringDoc OpenAPI 3|
+| Observability | Spring Actuator + Micrometer + Prometheus |
+| Serialization | Jackson (no manual ObjectMapper instantiation) |
+ 
+### Forbidden
+ 
+- Lombok — use Java records for DTOs and plain Java for domain objects
+- Field injection (`@Autowired` on fields) — use constructor injection only
+- `System.out.println` — use SLF4J (`LoggerFactory.getLogger(...)`)
+- Mutable static state or static utility singletons
+- Raw `EntityManager` queries unless a JPQL/Criteria approach is demonstrably insufficient
+- H2 in-memory database — all tests run against a real PostgreSQL instance via Testcontainers
+- JWT / stateless token auth — session management is handled server-side by Spring Security
+---
+ 
+## Article II — Architecture Principles
+ 
+1. **Layered architecture** — `Controller → Service → Repository`. No layer may skip another.
+2. **Domain model isolation** — JPA entities live in `domain.model`. They are never returned directly from controllers; map to DTOs first.
+3. **DTOs as Java records** — Request/response objects are immutable records in `application.dto`.
+4. **Thin controllers** — Controllers handle HTTP concerns only (request parsing, response codes, error mapping). Business logic belongs in the service layer.
+5. **Stateless services** — Service beans hold no mutable instance state. All state lives in the database or request scope.
+6. **Repository per aggregate root** — One `JpaRepository` interface per aggregate root. No cross-aggregate queries in a single repository.
+---
+ 
+## Article III — Package Structure
+ 
+```
+com.example.myservice
+├── application
+│   ├── dto          # Records: request/response payloads
+│   └── service      # Business logic interfaces + implementations
+├── domain
+│   ├── model        # JPA entities, value objects
+│   └── repository   # Spring Data JPA interfaces
+├── infrastructure
+│   ├── config       # Spring @Configuration classes
+│   ├── security     # Session config, access control, security filters
+│   └── persistence  # Custom query implementations (if any)
+└── web
+    ├── controller   # @RestController classes
+    └── exception    # @ControllerAdvice, custom exceptions
+```
+ 
+New packages must fit this structure. Propose an amendment if a new concern genuinely does not fit.
+ 
+---
+ 
+## Article IV — API Design
+ 
+- All endpoints are versioned under `/api/v1/...`
+- HTTP verbs follow REST semantics: `GET` reads, `POST` creates, `PUT` replaces, `PATCH` partially updates, `DELETE` removes
+- Successful creation returns `201 Created` with a `Location` header
+- Validation errors return `400 Bad Request` with a structured body (field, message)
+- Not-found conditions return `404 Not Found`, never `200` with a null body
+- All error responses use the shared `ErrorResponse` record:
+```java
+  record ErrorResponse(String code, String message, Instant timestamp) {}
+```
+- Pagination uses Spring's `Pageable` with query params `?page=0&size=20&sort=createdAt,desc`
+---
+ 
+## Article V — Data & Persistence
+ 
+- Every entity has a `UUID` primary key generated by the database (`DEFAULT gen_random_uuid()`)
+- Audit columns `created_at` and `updated_at` are managed via `@CreatedDate` / `@LastModifiedDate` (`@EnableJpaAuditing`)
+- All schema changes go through Flyway migrations in `src/main/resources/db/migration/`
+- Migration file naming: `V{version}__{short_description}.sql` (e.g., `V1__create_users_table.sql`)
+- No `ddl-auto` other than `validate` in production profiles
+- Queries fetching collections must be paginated — no unbounded `findAll()`
+---
+ 
+## Article VI — Security
+ 
+- All endpoints require authentication by default; opt-out with `@PermitAll` and a comment explaining why
+- Authentication is session-based: Spring Security manages server-side `HttpSession`; no stateless tokens
+- Session cookie must be `HttpOnly`, `Secure` (in non-local profiles), and `SameSite=Strict`
+- Session fixation protection is enabled (`changeSessionId` strategy)
+- Concurrent session control is enforced — one active session per user by default
+- Passwords are hashed with BCrypt (strength ≥ 12); plaintext passwords never appear in logs or responses
+- Sensitive configuration (DB credentials, session secret/store config) is injected via environment variables, never hardcoded
+- CORS is configured explicitly in `SecurityConfig`; wildcard origins (`*`) are forbidden in production profiles
+- CSRF protection is enabled for all state-mutating requests (`POST`, `PUT`, `PATCH`, `DELETE`)
+---
+ 
+## Article VII — Testing Standards
+ 
+- **Unit tests** cover all service-layer methods; mock repositories with Mockito
+- **Integration tests** use `@SpringBootTest` + Testcontainers (PostgreSQL 16) for all repository and controller layers — same database engine as production; no in-memory substitutes
+- A shared `@Container` (annotated `static`) is reused across the test suite via a base class to avoid spinning up a new container per test class
+- **Minimum coverage gate:** 80% line coverage on `application` and `domain` packages (enforced by JaCoCo in CI)
+- Test class naming: `{SubjectClass}Test` for unit tests, `{SubjectClass}IT` for integration tests
+- No business logic in test helpers; shared setup goes in `@BeforeEach` or a base test class
+- `application-test.yml` overrides are the only way to change configuration for tests
+---
+ 
+## Article VIII — Code Quality
+ 
+- All code must compile without warnings (`-Xlint:all` is enabled in the Maven build)
+- Checkstyle enforces Google Java Style Guide; violations fail the build
+- No TODO comments in merged code — open a GitHub issue instead
+- Every `public` method on a service interface has a Javadoc comment
+- Complex business rules are expressed in named methods, not inline conditionals
+---
+ 
+## Article IX — Operational Readiness
+ 
+- Spring Actuator endpoints (`/actuator/health`, `/actuator/metrics`) are enabled and secured (read-only, internal network only)
+- All significant operations are logged at `INFO` level with a correlation ID (injected via MDC)
+- Errors are logged at `ERROR` level with full stack traces; business validation failures at `WARN`
+- Application properties follow the `application.yml` → `application-{profile}.yml` layering pattern
+- Docker image is built via the Maven Spring Boot plugin (`spring-boot:build-image`); no hand-written Dockerfile unless justified
+---
+ 
+## Constitution Update Checklist
+ 
+Before amending this constitution, confirm:
+ 
+- [ ] The change applies project-wide, not just to one feature
+- [ ] All affected existing code will be updated (or a migration plan is documented)
+- [ ] The amendment has been discussed and approved in a pull request
+- [ ] The date and rationale of the change are noted below
+### Amendment Log
+ 
+| Date | Article | Change | Author |
+|---|---|---|---|
+| — | — | Initial constitution | — |
+| 2026-06-15 | I, VI, VII | Replaced H2 in-memory test database with Testcontainers (PostgreSQL 16); forbidden H2 explicitly | — |
+| 2026-06-15 | I, VI, III | Replaced JWT / stateless auth with Spring Security HTTP Session; updated package comment; forbidden JWT explicitly | — |
