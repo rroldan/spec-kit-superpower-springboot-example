@@ -37,8 +37,6 @@ Constitution · MD
 - `System.out.println` — use SLF4J (`LoggerFactory.getLogger(...)`)
 - Mutable static state or static utility singletons
 - Raw `EntityManager` queries unless a JPQL/Criteria approach is demonstrably insufficient
-- H2 in-memory database — all tests run against a real PostgreSQL instance via Testcontainers
-- JWT / stateless token auth — session management is handled server-side by Spring Security
 ---
  
 ## Article II — Architecture Principles
