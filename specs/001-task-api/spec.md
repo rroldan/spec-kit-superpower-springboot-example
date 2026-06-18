@@ -6,7 +6,13 @@ task-api
 
 ## Overview
 
-Create a RESTful API for managing tasks. This feature covers the Task entity (id, title, description, status, createdAt, updatedAt) and provides a first-iteration endpoint to create tasks: `POST /tasks`.
+Create a RESTful API for managing tasks. This feature covers the Task entity (id, title, description, status, createdAt, updatedAt) and provides a first-iteration endpoint to create tasks: `POST /api/v1/tasks`.
+
+## Clarifications
+
+### Session 2026-06-18
+
+- Q: Which endpoint path should the API use (`/api/v1/tasks` vs `/tasks`)? → A: Use `/api/v1/tasks` (versioned, aligns with project constitution).
 
 ## Actors
 
