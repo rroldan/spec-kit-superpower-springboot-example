@@ -15,6 +15,12 @@ Create a RESTful API for managing tasks. This feature covers the Task entity (id
 - Q: Which endpoint path should the API use (`/api/v1/tasks` vs `/tasks`)? → A: Use `/api/v1/tasks` (versioned, aligns with project constitution).
  - Q: Are tasks owned by the authenticated user or shared globally? → A: Shared globally (available to all authenticated users).
 
+### Session 2026-06-19
+
+- Q: Which error response format should validation failures use? → A: Custom ErrorResponse with an `errors` map (field → list of messages).
+ - Q: Which error response format should validation failures use? → A: Custom ErrorResponse with an `errors` map (field → list of messages).
+ - Q: Which format should the `Location` header use on create responses? → A: Relative path (e.g., `/api/v1/tasks/{id}`).
+
 ## Actors
 
 - **User**: any authenticated client that creates and manages tasks
@@ -73,6 +79,21 @@ Request schema (example):
 - Responses:
   - `201 Created` — body: created Task representation, header `Location: /api/v1/tasks/{id}`
   - `400 Bad Request` — body: `ErrorResponse` with validation details
+
+  - `400 Bad Request` — body: `ErrorResponse` with validation details
+
+  ErrorResponse schema (validation failures):
+
+  ```json
+  {
+    "error": "validation_failed",
+    "message": "Validation failed",
+    "errors": {
+      "title": ["must not be blank"],
+      "description": ["max length exceeded"]
+    }
+  }
+  ```
 
 ## Validation Rules
 
