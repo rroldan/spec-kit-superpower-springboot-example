@@ -1,0 +1,120 @@
+openapi: 3.0.3
+info:
+  title: Task API (create)
+  version: 1.0.0
+paths:
+  /api/v1/tasks:
+    post:
+      summary: Create a Task
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateTaskRequest'
+            examples:
+              sample:
+                summary: Create task example
+                value:
+                  title: "Buy groceries"
+                  description: "Milk, bread, eggs"
+      responses:
+        '201':
+          description: Created — returns the created Task and Location header
+          headers:
+            Location:
+              description: Relative path to the created resource
+              schema:
+                type: string
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Task'
+              examples:
+                created:
+                  summary: Example created task
+                  value:
+                    id: "3fa85f64-5717-4562-b3fc-2c963f66afa6"
+                    title: "Buy groceries"
+                    description: "Milk, bread, eggs"
+                    status: "TODO"
+                    createdAt: "2026-06-19T12:00:00Z"
+                    updatedAt: "2026-06-19T12:00:00Z"
+        '400':
+          description: Validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+              examples:
+                validationError:
+                  summary: Validation error example
+                  value:
+                    error: "validation_failed"
+                    message: "Validation failed"
+                    errors:
+                      title:
+                        - "must not be blank"
+        '401':
+          description: Authentication required
+components:
+  schemas:
+    CreateTaskRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          maxLength: 255
+        description:
+          type: string
+          maxLength: 4000
+      required:
+        - title
+      additionalProperties: false
+    Task:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        title:
+          type: string
+        description:
+          type: string
+          nullable: true
+        status:
+          type: string
+          enum:
+            - TODO
+            - IN_PROGRESS
+            - DONE
+        createdAt:
+          type: string
+          format: date-time
+        updatedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - title
+        - status
+        - createdAt
+        - updatedAt
+      additionalProperties: false
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+        errors:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: string
+      required:
+        - error
+        - message
+      additionalProperties: false
